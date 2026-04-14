@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getAllOrders, createOrder } from '@/lib/static-data';
 
 export async function GET() {
   try {
-    const orders = await db.order.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        items: true,
-        refunds: true,
-      },
-    });
-
+    const orders = getAllOrders();
     return NextResponse.json(orders);
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -41,29 +34,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const order = await db.order.create({
-      data: {
-        customerName,
-        customerPhone,
-        customerEmail: customerEmail || '',
-        address: address || '',
-        city: city || 'Srinagar',
-        deliveryType: deliveryType || 'home_delivery',
-        paymentMethod: paymentMethod || 'cod',
-        notes: notes || '',
-        totalAmount: totalAmount || 0,
-        items: {
-          create: items.map((item: { productId: string; productName: string; quantity: number; price: number }) => ({
-            productId: item.productId,
-            productName: item.productName,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
-      include: {
-        items: true,
-      },
+    const order = createOrder({
+      customerName,
+      customerPhone,
+      customerEmail,
+      address,
+      city,
+      deliveryType,
+      paymentMethod,
+      notes,
+      items,
+      totalAmount,
     });
 
     return NextResponse.json(order, { status: 201 });

@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { products_static } from '@/lib/static-data';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const product = await db.product.findUnique({
-      where: { id },
-      include: {
-        orderItems: true,
-      },
-    });
+    const product = products_static.find((p) => p.id === id);
 
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });

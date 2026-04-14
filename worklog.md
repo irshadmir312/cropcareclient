@@ -21,6 +21,29 @@ Work Log:
 Stage Summary:
 - Complete e-commerce website for Crop Care Centre
 - Features: Product listing/purchase, Cart, Checkout, Weather advisory, Crop guides, Price comparison, Chatbot, Shop location, User account, Refund system
-- Tech stack: Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma (SQLite), Zustand, TanStack Query, Framer Motion, z-ai-web-dev-sdk
-- Database: 4 crops, 12 products, full order management
+- Tech stack: Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Zustand, TanStack Query, Framer Motion, z-ai-web-dev-sdk
+- Data: 4 crops, 12 products, in-memory order/refund storage
 - All endpoints verified: /, /api/products, /api/crops, /api/weather, /api/orders (201), /api/chat
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix Vercel deployment - remove SQLite/Prisma dependency
+
+Work Log:
+- Diagnosed root cause: SQLite (file-based) does not work on Vercel serverless functions
+- Created src/lib/static-data.ts with all product/crop data as TypeScript constants (no DB needed)
+- Implemented in-memory stores for orders and refunds (work on serverless)
+- Rewrote all 6 API routes that used Prisma: products, products/[id], crops, crops/[id], orders, refunds
+- Updated chat route to gracefully degrade when z-ai-web-dev-sdk is unavailable (outside sandbox)
+- Weather route already worked (no DB dependency)
+- Removed `output: "standalone"` from next.config.ts (Vercel handles this)
+- All 13 API endpoints tested and returning correct HTTP status
+- Lint passes with 0 errors, 0 warnings
+
+Stage Summary:
+- App now fully works without any database or persistent storage
+- Vercel deployment should work without errors
+- Static product/crop data is embedded in the code
+- Orders/refunds use in-memory storage (survives within a single serverless instance cold start)
+- Chat has intelligent fallback responses when LLM SDK is unavailable

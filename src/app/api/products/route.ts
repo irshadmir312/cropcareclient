@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { products_static } from '@/lib/static-data';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,34 +9,31 @@ export async function GET(request: NextRequest) {
     const featured = searchParams.get('featured');
     const cropId = searchParams.get('cropId');
 
-    const where: Record<string, unknown> = {};
+    let result = [...products_static];
 
     if (category && category !== 'all') {
-      where.category = category;
+      result = result.filter((p) => p.category === category);
     }
 
     if (featured === 'true') {
-      where.featured = true;
+      result = result.filter((p) => p.featured);
     }
 
     if (search) {
-      where.OR = [
-        { name: { contains: search } },
-        { company: { contains: search } },
-        { description: { contains: search } },
-      ];
+      const q = search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.company.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+      );
     }
 
     if (cropId) {
-      where.cropIds = { contains: cropId };
+      result = result.filter((p) => p.cropIds.split(',').includes(cropId));
     }
 
-    const products = await db.product.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return NextResponse.json(products);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

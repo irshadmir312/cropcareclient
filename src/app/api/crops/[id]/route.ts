@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { crops_static } from '@/lib/static-data';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const crop = await db.crop.findUnique({
-      where: { id },
-    });
+    const crop = crops_static.find((c) => c.id === id);
 
     if (!crop) {
       return NextResponse.json({ error: 'Crop not found' }, { status: 404 });

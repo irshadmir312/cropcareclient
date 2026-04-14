@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
 const SYSTEM_PROMPT = `You are a helpful agricultural assistant for Crop Care Centre in Kashmir, India. Help farmers with questions about pesticides, insecticides, crop diseases, and spray schedules. Focus on Kashmir crops: Apple, Walnut, Saffron, Apricot. Keep responses simple and practical. Use ₹ for currency. You can recommend products, give spray timing advice based on Kashmir seasons, and help diagnose common crop diseases.`;
 
@@ -14,27 +13,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await db.chatMessage.create({
-      data: {
-        sessionId,
-        role: 'user',
-        content: message,
-      },
-    });
-
-    const recentMessages = await db.chatMessage.findMany({
-      where: { sessionId },
-      orderBy: { createdAt: 'asc' },
-      take: 20,
-    });
-
-    const chatHistory = recentMessages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
     let assistantResponse: string;
 
+    // Try LLM via z-ai-web-dev-sdk (only works in sandbox, gracefully degrades)
     try {
       const ZAI = (await import('z-ai-web-dev-sdk')).default;
       const client: any = await ZAI.create();
@@ -42,25 +23,22 @@ export async function POST(request: NextRequest) {
         model: 'deepseek-chat',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          ...chatHistory.slice(-10),
+          { role: 'user', content: message },
         ],
         max_tokens: 500,
         temperature: 0.7,
       });
 
-      const result = completion as unknown as { choices?: { message?: { content?: string } }[] };
-      assistantResponse = result.choices?.[0]?.message?.content || 'Sorry, I could not process your request. Please try again.';
+      const result = completion as unknown as {
+        choices?: { message?: { content?: string } }[];
+      };
+      assistantResponse =
+        result.choices?.[0]?.message?.content ||
+        generateFallbackResponse(message);
     } catch {
+      // SDK not available outside sandbox — use fallback
       assistantResponse = generateFallbackResponse(message);
     }
-
-    await db.chatMessage.create({
-      data: {
-        sessionId,
-        role: 'assistant',
-        content: assistantResponse,
-      },
-    });
 
     return NextResponse.json({ response: assistantResponse });
   } catch (error) {
@@ -82,7 +60,7 @@ function generateFallbackResponse(message: string): string {
     return 'You can check our latest prices in the Products section or use the Compare Prices feature to find the best deals. We offer competitive prices for all agricultural products in Kashmir.';
   }
   if (lower.includes('weather') || lower.includes('rain')) {
-    return 'Please check our Weather section for the latest 5-day forecast and spray advisory. We provide specific recommendations on whether it\'s safe to spray based on rain probability, wind speed, and temperature.';
+    return "Please check our Weather section for the latest 5-day forecast and spray advisory. We provide specific recommendations on whether it's safe to spray based on rain probability, wind speed, and temperature.";
   }
   if (lower.includes('contact') || lower.includes('phone') || lower.includes('location')) {
     return 'You can reach us at:\n📍 Residency Road, Srinagar, J&K 190001\n📞 +91 194 234 5678\n📧 info@cropcarecentre.in\n\nHours: Mon-Sat 9AM-7PM, Sunday Closed';

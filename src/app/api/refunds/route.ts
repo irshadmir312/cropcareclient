@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getAllRefunds, createRefund } from '@/lib/static-data';
 
 export async function GET() {
   try {
-    const refunds = await db.refund.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        order: true,
-      },
-    });
-
+    const refunds = getAllRefunds();
     return NextResponse.json(refunds);
   } catch (error) {
     console.error('Error fetching refunds:', error);
@@ -29,14 +23,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const refund = await db.refund.create({
-      data: {
-        orderId,
-        reason,
-        description: description || '',
-        refundType: refundType || 'store_credit',
-        amount: amount || 0,
-      },
+    const refund = createRefund({
+      orderId,
+      reason,
+      description,
+      refundType,
+      amount,
     });
 
     return NextResponse.json(refund, { status: 201 });
