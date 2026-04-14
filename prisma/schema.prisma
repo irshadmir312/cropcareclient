@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  company     String
+  usage       String
+  category    String   @default("pesticide") // pesticide, insecticide, fungicide, herbicide
+  imageUrl    String   @default("")
+  inStock     Boolean  @default(true)
+  featured    Boolean  @default(false)
+  cropIds     String   @default("") // comma-separated crop IDs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  customerName  String
+  customerPhone String
+  customerEmail String      @default("")
+  address       String
+  city          String      @default("Srinagar")
+  deliveryType  String      @default("home_delivery") // home_delivery, shop_pickup
+  status        String      @default("pending") // pending, confirmed, processing, shipped, delivered, cancelled
+  totalAmount   Float
+  paymentMethod String      @default("cod") // cod, online
+  notes         String      @default("")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+  refunds       Refund[]
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String
+  quantity    Int
+  price       Float
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  orderId     String
+  reason      String   // damaged, wrong_product, not_needed, other
+  description String   @default("")
+  refundType  String   @default("store_credit") // store_credit, online_refund
+  status      String   @default("pending") // pending, approved, rejected, completed
+  amount      Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+model Crop {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  imageUrl        String   @default("")
+  diseases        String   // JSON string of diseases
+  recommendedProducts String @default("") // comma-separated product IDs
+  sprayTiming     String
+  season          String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // user, assistant
+  content   String
+  createdAt DateTime @default(now())
+}
